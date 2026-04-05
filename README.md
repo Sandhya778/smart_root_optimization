@@ -289,4 +289,4 @@ Free to use and modify for educational and non-commercial purposes.
 
 ---
 
-*ITM University Gwalior — New Resham Mill, Birla Nagar, Gwalior – 474001, Madhya Pradesh*
+*ITM University Gwalior — Jhanshi Road Gwalior – 474001, Madhya Pradesh*
