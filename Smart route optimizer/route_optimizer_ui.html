@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Route Optimizer — Gwalior</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --panel:    #111418;
+    --border:   #1e2530;
+    --accent:   #00e5ff;
+    --accent2:  #ff6b2b;
+    --green:    #39ff7a;
+    --muted:    #3a4555;
+    --text:     #c8d6e5;
+    --dim:      #5a6a7a;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui:   'Barlow', sans-serif;
+    --font-head: 'Barlow Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid lines bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── TOP BAR ── */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    animation: pulse-hex 3s ease-in-out infinite;
+  }
+  @keyframes pulse-hex {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,229,255,0.4); }
+    50%      { box-shadow: 0 0 0 8px rgba(0,229,255,0); }
+  }
+  .logo-text h1 {
+    font-family: var(--font-head);
+    font-size: 1.3rem; font-weight: 900;
+    letter-spacing: 3px; color: #fff;
+    text-transform: uppercase;
+  }
+  .logo-text span {
+    font-family: var(--font-mono);
+    font-size: 0.65rem; color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .header-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem; color: var(--dim);
+    text-align: right; line-height: 1.7;
+  }
+  .header-meta b { color: var(--accent); }
+  .status-dot {
+    display: inline-block; width: 7px; height: 7px;
+    background: var(--green); border-radius: 50%;
+    margin-right: 5px;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* ── LEFT PANEL ── */
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem; color: var(--accent);
+    letter-spacing: 3px; text-transform: uppercase;
+    padding: 16px 20px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::before {
+    content: '';
+    width: 3px; height: 12px;
+    background: var(--accent);
+    display: block;
+  }
+
+  /* Stop list */
+  .stop-list { padding: 10px 0; flex: 1; }
+
+  .stop-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+    animation: slide-in 0.4s ease both;
+  }
+  .stop-item:hover {
+    background: rgba(0,229,255,0.04);
+    border-left-color: var(--accent);
+  }
+  .stop-item.depot {
+    border-left-color: var(--accent2);
+    background: rgba(255,107,43,0.05);
+  }
+  @keyframes slide-in {
+    from { opacity:0; transform: translateX(-12px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+
+  .stop-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem; color: var(--dim);
+    width: 20px; text-align: right;
+    flex-shrink: 0;
+  }
+  .stop-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--muted); border: 2px solid var(--dim);
+    flex-shrink: 0; position: relative;
+    transition: all 0.2s;
+  }
+  .stop-item.depot .stop-dot {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+  }
+  .stop-item:not(.depot):hover .stop-dot {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .stop-connector {
+    position: absolute; left: 50%; top: 10px;
+    width: 1px; height: 22px;
+    background: var(--muted);
+    transform: translateX(-50%);
+  }
+  .stop-info { flex: 1; min-width: 0; }
+  .stop-name {
+    font-size: 0.82rem; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .stop-item.depot .stop-name { color: var(--accent2); }
+  .stop-coords {
+    font-family: var(--font-mono);
+    font-size: 0.58rem; color: var(--dim);
+    margin-top: 2px;
+  }
+  .stop-dist {
+    font-family: var(--font-mono);
+    font-size: 0.65rem; color: var(--accent);
+    text-align: right; flex-shrink: 0;
+  }
+  .stop-dist span { display: block; font-size: 0.55rem; color: var(--dim); }
+
+  /* Add stop form */
+  .add-form {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,229,255,0.02);
+  }
+  .add-form .form-title {
+    font-family: var(--font-mono);
+    font-size: 0.62rem; color: var(--accent);
+    letter-spacing: 2px; margin-bottom: 10px;
+  }
+  .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .input-row input, .add-form input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 7px 10px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .input-row input:focus, .add-form input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,229,255,0.1);
+  }
+  .input-row input::placeholder, .add-form input::placeholder { color: var(--muted); }
+  .coord-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .btn-add {
+    width: 100%; padding: 8px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.7rem; letter-spacing: 2px;
+    cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn-add:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* ── MAIN PANEL ── */
+  .main {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* map canvas area */
+  .map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #0d1117;
+  }
+
+  canvas#routeCanvas {
+    display: block; width: 100%; height: 100%;
+  }
+
+  .map-overlay {
+    position: absolute; top: 14px; right: 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 5;
+  }
+  .map-btn {
+    width: 36px; height: 36px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text); font-size: 1rem;
+    cursor: pointer; border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .map-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .stat-cell {
+    padding: 14px 20px;
+    border-right: 1px solid var(--border);
+    animation: fade-up 0.5s ease both;
+  }
+  .stat-cell:last-child { border-right: none; }
+  @keyframes fade-up {
+    from { opacity:0; transform:translateY(8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem; color: var(--dim);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: var(--font-head);
+    font-size: 1.6rem; font-weight: 900;
+    line-height: 1; color: #fff;
+  }
+  .stat-value.accent  { color: var(--accent); }
+  .stat-value.green   { color: var(--green); }
+  .stat-value.orange  { color: var(--accent2); }
+  .stat-unit {
+    font-family: var(--font-mono);
+    font-size: 0.6rem; color: var(--dim);
+    margin-top: 3px;
+  }
+
+  /* ── RUN BUTTON ── */
+  .run-bar {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: center;
+    background: var(--panel);
+  }
+  .btn-run {
+    flex: 1; padding: 11px 0;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--font-head);
+    font-size: 0.95rem; font-weight: 900;
+    letter-spacing: 4px; text-transform: uppercase;
+    border: none; cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-run::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+  .btn-run:hover::after { transform: translateX(100%); }
+  .btn-run:hover { background: #33eeff; }
+
+  .btn-clear {
+    padding: 11px 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.7rem; letter-spacing: 2px;
+    cursor: pointer; border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-clear:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ETA table */
+  .eta-panel {
+    display: none;
+    padding: 0 20px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    max-height: 200px; overflow-y: auto;
+  }
+  .eta-panel.visible { display: block; }
+  .eta-table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-mono); font-size: 0.68rem;
+    margin-top: 10px;
+  }
+  .eta-table th {
+    color: var(--accent); font-weight: 400;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 8px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .eta-table td {
+    padding: 5px 8px; color: var(--text);
+    border-bottom: 1px solid rgba(30,37,48,0.5);
+  }
+  .eta-table tr:last-child td { color: var(--accent2); }
+  .eta-table tr:nth-child(even) td { color: var(--dim); }
+
+  /* notification toast */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--panel); border: 1px solid var(--accent);
+    color: var(--accent); font-family: var(--font-mono);
+    font-size: 0.72rem; padding: 10px 16px;
+    border-radius: 2px; z-index: 999;
+    transform: translateY(60px); opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <div class="logo-text">
+      <h1>Route Optimizer</h1>
+      <span><span class="status-dot"></span>SYSTEM ACTIVE · GWALIOR, MP</span>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div><b>BASE</b> G-8 Vyankateshwaram, City Center</div>
+    <div><b>PINCODE</b> 474011 · Madhya Pradesh, India</div>
+  </div>
+</header>
+
+<div class="app">
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+    <div class="section-label">Stop Sequence</div>
+
+    <div class="stop-list" id="stopList"></div>
+
+    <!-- Add Stop Form -->
+    <div class="add-form">
+      <div class="form-title">// ADD NEW STOP</div>
+      <input type="text" id="newName" placeholder="Stop name (e.g. Post Office)" style="margin-bottom:8px">
+      <div class="coord-row">
+        <input type="number" id="newLat" placeholder="Latitude" step="0.0001">
+        <input type="number" id="newLng" placeholder="Longitude" step="0.0001">
+      </div>
+      <button class="btn-add" onclick="addStop()">+ Add Stop</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="map-area">
+      <canvas id="routeCanvas"></canvas>
+      <div class="map-overlay">
+        <button class="map-btn" title="Zoom In"  onclick="zoom(1.2)">+</button>
+        <button class="map-btn" title="Zoom Out" onclick="zoom(0.8)">−</button>
+        <button class="map-btn" title="Fit All"  onclick="fitAll()">⊡</button>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-cell" style="animation-delay:0s">
+        <div class="stat-label">Total Stops</div>
+        <div class="stat-value accent" id="statStops">9</div>
+        <div class="stat-unit">locations</div>
+      </div>
+      <div class="stat-cell" style="animation-delay:0.08s">
+        <div class="stat-label">Optimized Dist.</div>
+        <div class="stat-value" id="statDist">—</div>
+        <div class="stat-unit">km (round trip)</div>
+      </div>
+      <div class="stat-cell" style="animation-delay:0.16s">
+        <div class="stat-label">Distance Saved</div>
+        <div class="stat-value green" id="statSaved">—</div>
+        <div class="stat-unit">vs naïve order</div>
+      </div>
+      <div class="stat-cell" style="animation-delay:0.24s">
+        <div class="stat-label">Est. Travel Time</div>
+        <div class="stat-value orange" id="statTime">—</div>
+        <div class="stat-unit">@ 30 km/h city</div>
+      </div>
+    </div>
+
+    <div class="run-bar">
+      <button class="btn-run" onclick="runOptimizer()">⚡ OPTIMIZE ROUTE</button>
+      <button class="btn-clear" onclick="resetStops()">RESET</button>
+    </div>
+
+    <div class="eta-panel" id="etaPanel">
+      <table class="eta-table" id="etaTable"></table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Data ───────────────────────────────────────────────────
+const DEFAULT_STOPS = [
+  { name: "Home (G-8 Vyankateshwaram)", lat: 26.2100, lng: 78.1870, depot: true },
+  { name: "DB City Mall",               lat: 26.2164, lng: 78.1850 },
+  { name: "Gwalior Junction Station",   lat: 26.2162, lng: 78.1826 },
+  { name: "Gwalior Fort",               lat: 26.2218, lng: 78.1664 },
+  { name: "Jai Vilas Palace",           lat: 26.2042, lng: 78.1685 },
+  { name: "Jiwaji University",          lat: 26.2009, lng: 78.1987 },
+  { name: "Tigra Dam",                  lat: 26.2176, lng: 78.0085 },
+  { name: "Gwalior Airport",            lat: 26.2976, lng: 78.2260 },
+  { name: "Birla Nagar Market",         lat: 26.2366, lng: 78.1939 },
+];
+
+let stops = DEFAULT_STOPS.map(s => ({...s}));
+let optimizedRoute = null;
+let scale = 1, offsetX = 0, offsetY = 0;
+
+// ─── Haversine ───────────────────────────────────────────────
+function haversine(a, b) {
+  const R = 6371, toR = Math.PI / 180;
+  const dlat = (b.lat - a.lat) * toR;
+  const dlng = (b.lng - a.lng) * toR;
+  const x = Math.sin(dlat/2)**2 + Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dlng/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(x));
+}
+
+function routeDist(route) {
+  let d = 0;
+  for (let i = 0; i < route.length - 1; i++) d += haversine(stops[route[i]], stops[route[i+1]]);
+  d += haversine(stops[route[route.length-1]], stops[route[0]]);
+  return d;
+}
+
+// ─── Nearest Neighbor ────────────────────────────────────────
+function nearestNeighbor(startIdx) {
+  const n = stops.length, visited = new Array(n).fill(false);
+  const route = [startIdx]; visited[startIdx] = true;
+  while (route.length < n) {
+    let cur = route[route.length-1], best = -1, bestD = Infinity;
+    for (let j = 0; j < n; j++) {
+      if (!visited[j]) {
+        const d = haversine(stops[cur], stops[j]);
+        if (d < bestD) { bestD = d; best = j; }
+      }
+    }
+    route.push(best); visited[best] = true;
+  }
+  return route;
+}
+
+// ─── 2-opt ───────────────────────────────────────────────────
+function twoOpt(route) {
+  let best = [...route], bestD = routeDist(best);
+  let improved = true;
+  while (improved) {
+    improved = false;
+    for (let i = 1; i < best.length - 1; i++) {
+      for (let j = i + 1; j < best.length; j++) {
+        const newR = [...best.slice(0,i), ...best.slice(i,j+1).reverse(), ...best.slice(j+1)];
+        const newD = routeDist(newR);
+        if (newD < bestD - 1e-6) { best = newR; bestD = newD; improved = true; break; }
+      }
+      if (improved) break;
+    }
+  }
+  return best;
+}
+
+// ─── Optimizer ───────────────────────────────────────────────
+function optimize() {
+  const n = stops.length;
+  let bestRoute = null, bestD = Infinity;
+  const starts = new Set([0]);
+  for (let i = 0; i < Math.min(n, 4); i++) starts.add(Math.floor(Math.random() * n));
+  for (const s of starts) {
+    const r = nearestNeighbor(s);
+    const d = routeDist(r);
+    if (d < bestD) { bestD = d; bestRoute = r; }
+  }
+  return twoOpt(bestRoute);
+}
+
+// ─── UI: Stop List ───────────────────────────────────────────
+function renderStopList(route) {
+  const list = document.getElementById('stopList');
+  list.innerHTML = '';
+  const seq = route || stops.map((_, i) => i);
+
+  seq.forEach((idx, pos) => {
+    const s = stops[idx];
+    const legDist = pos === 0 ? 0
+      : haversine(stops[seq[pos-1]], s);
+
+    const item = document.createElement('div');
+    item.className = 'stop-item' + (s.depot ? ' depot' : '');
+    item.style.animationDelay = (pos * 0.04) + 's';
+    item.innerHTML = `
+      <div class="stop-num">${pos + 1}</div>
+      <div class="stop-dot" style="position:relative">
+        ${pos < seq.length - 1 ? '<div class="stop-connector"></div>' : ''}
+      </div>
+      <div class="stop-info">
+        <div class="stop-name">${s.name}</div>
+        <div class="stop-coords">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
+      </div>
+      ${pos > 0 ? `<div class="stop-dist">${legDist.toFixed(1)}<span>km leg</span></div>` : ''}
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ─── Canvas: draw route ──────────────────────────────────────
+const canvas = document.getElementById('routeCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const area = canvas.parentElement;
+  canvas.width  = area.clientWidth;
+  canvas.height = area.clientHeight;
+  drawRoute(optimizedRoute);
+}
+
+function latLngToXY(stop) {
+  const allLats = stops.map(s => s.lat), allLngs = stops.map(s => s.lng);
+  const minLat = Math.min(...allLats), maxLat = Math.max(...allLats);
+  const minLng = Math.min(...allLngs), maxLng = Math.max(...allLngs);
+  const pad = 60;
+  const W = canvas.width - pad*2, H = canvas.height - pad*2;
+  const x = pad + ((stop.lng - minLng) / (maxLng - minLng || 1)) * W;
+  const y = pad + H - ((stop.lat - minLat) / (maxLat - minLat || 1)) * H;
+  return { x: x * scale + offsetX, y: y * scale + offsetY };
+}
+
+function drawRoute(route) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (stops.length < 2) return;
+
+  const seq = route || stops.map((_, i) => i);
+
+  // draw grid dots
+  ctx.fillStyle = 'rgba(30,37,48,0.6)';
+  for (let x = 20; x < canvas.width; x += 40)
+    for (let y = 20; y < canvas.height; y += 40) {
+      ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+    }
+
+  // draw route lines
+  ctx.strokeStyle = route ? '#00e5ff' : '#1e2530';
+  ctx.lineWidth = route ? 2 : 1;
+  ctx.setLineDash(route ? [] : [4, 4]);
+  ctx.shadowColor = route ? '#00e5ff' : 'transparent';
+  ctx.shadowBlur  = route ? 8 : 0;
+
+  ctx.beginPath();
+  seq.forEach((idx, i) => {
+    const {x, y} = latLngToXY(stops[idx]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  const {x: sx, y: sy} = latLngToXY(stops[seq[0]]);
+  ctx.lineTo(sx, sy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  // animated moving dot along route
+  if (route) drawAnimDot(seq);
+
+  // draw stops
+  seq.forEach((idx, pos) => {
+    const s = stops[idx];
+    const {x, y} = latLngToXY(s);
+
+    // outer ring
+    ctx.beginPath();
+    ctx.arc(x, y, s.depot ? 14 : 9, 0, Math.PI*2);
+    ctx.fillStyle = s.depot ? 'rgba(255,107,43,0.15)' : 'rgba(0,229,255,0.1)';
+    ctx.fill();
+
+    // dot
+    ctx.beginPath();
+    ctx.arc(x, y, s.depot ? 7 : 5, 0, Math.PI*2);
+    ctx.fillStyle = s.depot ? '#ff6b2b' : '#00e5ff';
+    ctx.shadowColor = s.depot ? '#ff6b2b' : '#00e5ff';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // label
+    ctx.fillStyle = s.depot ? '#ff6b2b' : '#c8d6e5';
+    ctx.font = s.depot ? 'bold 11px Barlow Condensed' : '10px Barlow';
+    ctx.textAlign = 'center';
+    const label = s.name.length > 18 ? s.name.slice(0, 16) + '…' : s.name;
+    ctx.fillText(label, x, y - 14);
+
+    // sequence number
+    ctx.fillStyle = '#0a0c0f';
+    ctx.font = 'bold 8px Barlow Condensed';
+    ctx.fillText(pos + 1, x, y + 3);
+  });
+}
+
+// animated travel dot
+let animFrame, animT = 0;
+function drawAnimDot(seq) {
+  cancelAnimationFrame(animFrame);
+  const coords = [...seq.map(i => latLngToXY(stops[i])), latLngToXY(stops[seq[0]])];
+  let seg = 0, tSeg = 0;
+  const speed = 0.003;
+  function frame() {
+    const a = coords[seg], b = coords[seg+1];
+    tSeg += speed;
+    if (tSeg >= 1) { tSeg = 0; seg = (seg + 1) % (coords.length - 1); }
+    const x = a.x + (b.x - a.x) * tSeg;
+    const y = a.y + (b.y - a.y) * tSeg;
+    drawRoute(seq); // redraw base
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 15;
+    ctx.fill(); ctx.shadowBlur = 0;
+    animFrame = requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+// ─── Stats ───────────────────────────────────────────────────
+function updateStats(route) {
+  const optD   = routeDist(route);
+  const naiveD = routeDist(stops.map((_,i) => i));
+  const saved  = ((naiveD - optD) / naiveD * 100).toFixed(1);
+  const mins   = Math.round(optD / 30 * 60);
+  const h = Math.floor(mins/60), m = mins%60;
+  document.getElementById('statStops').textContent = stops.length;
+  document.getElementById('statDist').textContent  = optD.toFixed(1);
+  document.getElementById('statSaved').textContent = saved + '%';
+  document.getElementById('statTime').textContent  = h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function updateETA(route) {
+  const panel = document.getElementById('etaPanel');
+  const table = document.getElementById('etaTable');
+  panel.classList.add('visible');
+  let cum = 0;
+  const rows = route.map((idx, pos) => {
+    const s = stops[idx];
+    const leg = pos === 0 ? 0 : haversine(stops[route[pos-1]], s);
+    cum += leg;
+    const legM = Math.round(leg/30*60), cumM = Math.round(cum/30*60);
+    return `<tr>
+      <td>${pos+1}. ${s.name}</td>
+      <td>${pos===0?'—':leg.toFixed(2)+' km'}</td>
+      <td>${pos===0?'—':(legM>=60?`${Math.floor(legM/60)}h ${legM%60}m`:legM+'m')}</td>
+      <td>${cumM>=60?`${Math.floor(cumM/60)}h ${cumM%60}m`:cumM+'m'}</td>
+    </tr>`;
+  });
+  const ret = haversine(stops[route[route.length-1]], stops[route[0]]);
+  cum += ret; const retM = Math.round(ret/30*60), cumM = Math.round(cum/30*60);
+  rows.push(`<tr>
+    <td>↩ ${stops[route[0]].name}</td>
+    <td>${ret.toFixed(2)} km</td>
+    <td>${retM>=60?`${Math.floor(retM/60)}h ${retM%60}m`:retM+'m'}</td>
+    <td>${cumM>=60?`${Math.floor(cumM/60)}h ${cumM%60}m`:cumM+'m'}</td>
+  </tr>`);
+  table.innerHTML = `<tr><th>Stop</th><th>Leg</th><th>Leg Time</th><th>Cumulative</th></tr>` + rows.join('');
+}
+
+// ─── Actions ─────────────────────────────────────────────────
+function runOptimizer() {
+  if (stops.length < 2) { showToast('Add at least 2 stops!'); return; }
+  showToast('Optimizing…');
+  setTimeout(() => {
+    optimizedRoute = optimize();
+    renderStopList(optimizedRoute);
+    drawRoute(optimizedRoute);
+    updateStats(optimizedRoute);
+    updateETA(optimizedRoute);
+    showToast(`✓ Route optimized — ${stops.length} stops`);
+  }, 80);
+}
+
+function addStop() {
+  const name = document.getElementById('newName').value.trim();
+  const lat  = parseFloat(document.getElementById('newLat').value);
+  const lng  = parseFloat(document.getElementById('newLng').value);
+  if (!name || isNaN(lat) || isNaN(lng)) { showToast('Fill all fields correctly.'); return; }
+  stops.push({ name, lat, lng });
+  document.getElementById('newName').value = '';
+  document.getElementById('newLat').value  = '';
+  document.getElementById('newLng').value  = '';
+  optimizedRoute = null;
+  renderStopList(null);
+  drawRoute(null);
+  document.getElementById('statStops').textContent = stops.length;
+  showToast(`+ ${name} added`);
+}
+
+function resetStops() {
+  stops = DEFAULT_STOPS.map(s => ({...s}));
+  optimizedRoute = null;
+  cancelAnimationFrame(animFrame);
+  renderStopList(null);
+  drawRoute(null);
+  document.getElementById('statDist').textContent  = '—';
+  document.getElementById('statSaved').textContent = '—';
+  document.getElementById('statTime').textContent  = '—';
+  document.getElementById('statStops').textContent = stops.length;
+  document.getElementById('etaPanel').classList.remove('visible');
+  showToast('Reset to default Gwalior stops');
+}
+
+function zoom(f) { scale *= f; drawRoute(optimizedRoute); }
+function fitAll() { scale = 1; offsetX = 0; offsetY = 0; drawRoute(optimizedRoute); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Init ────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  resizeCanvas();
+  renderStopList(null);
+  drawRoute(null);
+});
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
