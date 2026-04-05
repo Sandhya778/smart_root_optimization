@@ -275,8 +275,8 @@ python route_optimizer.py --interactive
 | Name | Enrollment No. | Institute |
 |---|---|---|
 | Sandhya | BETN1AI23043 | ITM University Gwalior |
-| Kartik Patha | AI60K | ITM University Gwalior |
-| Mayank Dwivedi | AI44 | ITM University Gwalior |
+| Kartik Patha |  BETN1AI23060 | ITM University Gwalior |
+| Mayank Dwivedi |  BETN1AI23044 | ITM University Gwalior |
 
 **Guided by:** Dr. Sanjay Jain, Department of AI & ML, ITM University Gwalior
 
